@@ -183,7 +183,16 @@ export function UserDetail({ user: u, onBack, onToggleActive, onChangeRole, onDe
                         { icon: ShieldCheck, label: "Kullanıcı Adı", value: u.username || "—", bg: "bg-blue-50 text-blue-600" },
                         { icon: Mail, label: "E-posta", value: u.email || "—", bg: "bg-blue-50 text-blue-600" },
                         { icon: Phone, label: "Telefon", value: u.phone || "—", bg: "bg-emerald-50 text-emerald-600" },
-                        { icon: KeyRound, label: "Şifre", value: u.password || "******** (Gizli)", bg: "bg-amber-50 text-amber-600", action: onQuickReset ? () => onQuickReset(u) : undefined, actionIcon: <KeyRound size={16} />, actionTooltip: "Şifre Sıfırla" },
+                        { icon: KeyRound, label: "Varsayılan Şifre", value: (() => {
+                            const trMap: Record<string, string> = { 'ç': 'c', 'ğ': 'g', 'ı': 'i', 'ö': 'o', 'ş': 's', 'ü': 'u', 'Ç': 'c', 'Ğ': 'g', 'İ': 'i', 'Ö': 'o', 'Ş': 's', 'Ü': 'u' };
+                            const clean = (str: string) => (str || "").replace(/[çğıöşüÇĞİÖŞÜ]/g, m => trMap[m] || m).toLowerCase();
+                            const fName = u.firstName ? clean(u.firstName.split(' ')[0]) : 'ogrenci';
+                            const pStr = u.phone ? u.phone.replace(/\D/g, '') : '';
+                            const last2 = pStr.length >= 2 ? pStr.slice(-2) : '00';
+                            const lName = u.lastName ? clean(u.lastName) : 'x';
+                            const lChar = lName.length > 0 ? lName[0] : 'x';
+                            return `${fName}.${last2}.${lChar}`;
+                        })(), bg: "bg-amber-50 text-amber-600", action: onQuickReset ? () => onQuickReset(u) : undefined, actionIcon: <KeyRound size={16} />, actionTooltip: "Şifre Sıfırla" },
                         { icon: CalendarIcon, label: "Kayıt Tarihi", value: new Date(u.createdAt).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" }), bg: "bg-purple-50 text-purple-600" },
                         { icon: Clock, label: "Son Giriş", value: lastLoginText, bg: "bg-[#F0F4F8] text-[#A0AEC0]", colSpan: 2 },
                     ].map((r, idx) => (
