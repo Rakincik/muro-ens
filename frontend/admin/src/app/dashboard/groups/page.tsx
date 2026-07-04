@@ -176,6 +176,7 @@ export default function GroupsPage() {
     const [assignCourseSearch, setAssignCourseSearch] = useState("");
     const [assignCourseSelection, setAssignCourseSelection] = useState<Set<string>>(new Set());
     const [assignCourseMode, setAssignCourseMode] = useState<"Online" | "Offline" | "Both">("Both");
+    const [assignModes, setAssignModes] = useState<Record<string, "Both" | "Offline">>({});
     const [allCourses, setAllCourses] = useState<{ id: string; title: string }[]>([]);
     const [loadingCourses, setLoadingCourses] = useState(false);
 
@@ -403,6 +404,17 @@ export default function GroupsPage() {
             success("İmha Edildi", "Seçili kullanıcılar sistemden kalıcı olarak silindi.");
             loadGroups();
         } catch (err: any) { toastError("Hata", err.message || "Kullanıcılar silinemedi."); }
+    };
+
+    const handleAssignSingleCourse = async (courseId: string, mode: "Both" | "Offline") => {
+        if (!selectedId || !token || !tenantId) return;
+        try {
+            await groupsApi.assignCourse(token, tenantId, selectedId, courseId, mode);
+            const d = await groupsApi.get(token, tenantId, selectedId);
+            setDetail(d);
+            success("Eklendi", "Ders gruba başarıyla eklendi.");
+            loadGroups();
+        } catch { toastError("Hata", "Ders atanamadı."); }
     };
 
     // Assign multiple courses
@@ -1222,27 +1234,6 @@ export default function GroupsPage() {
                                 />
                             </div>
 
-                            <div className="mb-6">
-                                <label className="block text-[11px] font-extrabold text-[#64748B] uppercase tracking-widest mb-3">Erişim Modu <span className="text-red-500">*</span></label>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <button 
-                                        type="button"
-                                        onClick={() => setAssignCourseMode("Both")}
-                                        className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all text-center ${assignCourseMode === "Both" ? "border-indigo-600 bg-indigo-50/30 ring-2 ring-indigo-600/20 shadow-sm text-indigo-600" : "border-[#E2E8F0] hover:border-[#A0AEC0] hover:bg-[#F8FAFC] text-[#64748B]"}`}
-                                    >
-                                        <MonitorPlay size={26} className="mb-2" />
-                                        <span className={`text-xs font-bold leading-tight ${assignCourseMode === "Both" ? "text-indigo-900" : "text-[#475569]"}`}>Online Paket<br/><span className="text-[10px] font-medium opacity-80">(Canlı Yayın + Video Kayıt)</span></span>
-                                    </button>
-                                    <button 
-                                        type="button"
-                                        onClick={() => setAssignCourseMode("Offline")}
-                                        className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all text-center ${assignCourseMode === "Offline" ? "border-amber-600 bg-amber-50/30 ring-2 ring-amber-600/20 shadow-sm text-amber-600" : "border-[#E2E8F0] hover:border-[#A0AEC0] hover:bg-[#F8FAFC] text-[#64748B]"}`}
-                                    >
-                                        <Download size={26} className="mb-2" />
-                                        <span className={`text-xs font-bold leading-tight ${assignCourseMode === "Offline" ? "text-amber-900" : "text-[#475569]"}`}>Offline Paket<br/><span className="text-[10px] font-medium opacity-80">(Sadece Video İzleme)</span></span>
-                                    </button>
-                                </div>
-                            </div>
 
                             <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
                                 {loadingCourses ? (
@@ -1256,18 +1247,42 @@ export default function GroupsPage() {
                                             .filter(c => !detail?.courses.some(dc => dc.courseId === c.id))
                                             .filter(c => !assignCourseSearch || c.title.toLocaleLowerCase('tr').includes(assignCourseSearch.toLocaleLowerCase('tr')))
                                             .map(c => {
-                                                const isSelected = assignCourseSelection.has(c.id);
+                                                const isOnline = (assignModes[c.id] || "Both") === "Both";
                                                 return (
-                                                    <div key={c.id} 
-                                                        onClick={() => {
-                                                            const newSel = new Set(assignCourseSelection);
-                                                            if (isSelected) newSel.delete(c.id);
-                                                            else newSel.add(c.id);
-                                                            setAssignCourseSelection(newSel);
-                                                        }}
-                                                        className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${isSelected ? "border-indigo-500 bg-indigo-50/50" : "border-[#E2E8F0]/60 hover:border-indigo-200 hover:bg-indigo-50/30"}`}>
-                                                        <input type="checkbox" checked={isSelected} readOnly className="w-4 h-4 rounded border-[#E2E8F0] text-indigo-600" />
-                                                        <p className="text-sm font-bold text-[#0A1931] flex-1">{c.title}</p>
+                                                    <div key={c.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl border border-[#E2E8F0]/60 hover:border-indigo-200 hover:bg-indigo-50/30 transition-all">
+                                                        <div className="flex items-center gap-3 min-w-0">
+                                                            <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
+                                                                <BookOpen size={16} className="text-indigo-600" />
+                                                            </div>
+                                                            <p className="text-sm font-bold text-[#0A1931] truncate">{c.title}</p>
+                                                        </div>
+                                                        
+                                                        <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+                                                            <div className="flex items-center gap-2 px-2.5 py-1.5 bg-[#F8FAFC] rounded-lg border border-[#E2E8F0]">
+                                                                <span className={`text-[9px] font-black tracking-wider ${!isOnline ? 'text-amber-600' : 'text-gray-400'}`}>OFFLINE</span>
+                                                                <button 
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setAssignModes(prev => ({ ...prev, [c.id]: isOnline ? "Offline" : "Both" }));
+                                                                    }}
+                                                                    className={`relative w-9 h-5 rounded-full transition-colors focus:outline-none ${isOnline ? 'bg-emerald-500' : 'bg-amber-400'}`}
+                                                                >
+                                                                    <div className={`absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full transition-all shadow-sm ${isOnline ? 'right-0.5' : 'left-0.5'}`} />
+                                                                </button>
+                                                                <span className={`text-[9px] font-black tracking-wider ${isOnline ? 'text-emerald-600' : 'text-gray-400'}`}>ONLINE</span>
+                                                            </div>
+                                                            <button 
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleAssignSingleCourse(c.id, isOnline ? "Both" : "Offline");
+                                                                }}
+                                                                className="px-3 py-1.5 bg-[#0A1931] text-white text-xs font-bold rounded-lg hover:bg-emerald-600 transition-colors flex items-center gap-1 shadow-sm shrink-0"
+                                                            >
+                                                                <Plus size={14} /> Ekle
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 );
                                         })}
@@ -1278,13 +1293,9 @@ export default function GroupsPage() {
                                 )}
                             </div>
                         </div>
-                        <div className="px-6 py-4 border-t border-[#E2E8F0]/60 bg-[#E2E8F0]/15 flex justify-end gap-2">
+                        <div className="px-6 py-4 border-t border-[#E2E8F0]/60 bg-[#E2E8F0]/15 flex justify-end">
                             <button onClick={() => { setAssignCourseOpen(false); setAssignCourseSearch(""); setAssignCourseSelection(new Set()); }}
-                                className="px-5 py-2.5 text-sm font-bold text-[#A9A9A9] border border-[#E2E8F0] rounded-xl hover:bg-white transition-colors">İptal</button>
-                            <button onClick={handleAssignCourses} disabled={assignCourseSelection.size === 0}
-                                className="px-5 py-2.5 text-sm font-bold bg-[#0A1931] text-white rounded-xl hover:bg-[#1B3B6F] disabled:opacity-40 transition-colors">
-                                {assignCourseSelection.size > 0 ? `${assignCourseSelection.size} Dersi Ata` : "Ders Seçiniz"}
-                            </button>
+                                className="px-5 py-2.5 text-sm font-bold bg-[#0A1931] text-white rounded-xl hover:bg-[#1B3B6F] transition-colors">Kapat</button>
                         </div>
                     </div>
                 </div>
