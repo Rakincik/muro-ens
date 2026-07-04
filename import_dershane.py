@@ -33,7 +33,6 @@ def main():
         host=args.host, dbname=args.dbname, user=args.user, password=args.password
     )
     cur = conn.cursor()
-    tenant_id = uuid.UUID('22222222-2222-2222-2222-222222222222')
 
     wb = openpyxl.load_workbook("dershaneonline.xlsx", data_only=True)
 
@@ -60,18 +59,18 @@ def main():
         username = phone if phone else email.split('@')[0]
         password_hash = "AQAAAAEAACcQAAAAEFg8b7gB5v5V6v5V6v5V6v5V6v5V6v5V6v5V6v5V6v5V6v5V6v5V6v5V6v5V6w==" # 123456
         
-        role_id = 0 # Admin
-        if str(rol).lower() == "öğrenci": role_id = 2
-        elif str(rol).lower() == "eğitimci": role_id = 1
+        role_str = "Admin"
+        if str(rol).lower() == "öğrenci": role_str = "Student"
+        elif str(rol).lower() == "eğitimci": role_str = "Teacher"
 
-        cur.execute("SELECT \"Id\" FROM \"Users\" WHERE \"PhoneNumber\" = %s OR \"Email\" = %s", (phone, email))
+        cur.execute("SELECT \"Id\" FROM \"Users\" WHERE \"Phone\" = %s OR \"Email\" = %s", (phone, email))
         if not cur.fetchone():
             if args.execute:
                 cur.execute(
-                    "INSERT INTO \"Users\" (\"Id\", \"TenantId\", \"FirstName\", \"LastName\", \"Email\", \"PhoneNumber\", \"UserName\", \"PasswordHash\", \"Role\", \"CreatedAt\", \"IsActive\") VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                    (str(uuid.uuid4()), str(tenant_id), first_name, last_name, email, phone, username, password_hash, role_id, datetime.datetime.now(), True)
+                    "INSERT INTO \"Users\" (\"Id\", \"FirstName\", \"LastName\", \"Email\", \"Username\", \"Phone\", \"PasswordHash\", \"Role\", \"StudentType\", \"IsActive\", \"IsDeleted\", \"CreatedAt\") VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    (str(uuid.uuid4()), first_name, last_name, email, username, phone, password_hash, role_str, "Active", True, False, datetime.datetime.now())
                 )
-            print(f"Added User: {first_name} {last_name} ({phone}) - Role: {role_id}")
+            print(f"Added User: {first_name} {last_name} ({phone}) - Role: {role_str}")
 
     # 2. IMPORT COURSES
     print("\n--- IMPORTING COURSES ---")
@@ -82,12 +81,12 @@ def main():
             if not ders or str(ders).strip() == "": continue
 
             course_name = str(ders).strip()
-            cur.execute("SELECT \"Id\" FROM \"Courses\" WHERE \"Title\" = %s AND \"TenantId\" = %s", (course_name, str(tenant_id)))
+            cur.execute("SELECT \"Id\" FROM \"Courses\" WHERE \"Title\" = %s", (course_name,))
             if not cur.fetchone():
                 if args.execute:
                     cur.execute(
-                        "INSERT INTO \"Courses\" (\"Id\", \"TenantId\", \"Title\", \"CourseType\", \"CreatedAt\") VALUES (%s, %s, %s, %s, %s)",
-                        (str(uuid.uuid4()), str(tenant_id), course_name, "Online", datetime.datetime.now())
+                        "INSERT INTO \"Courses\" (\"Id\", \"Title\", \"IsDeleted\", \"CreatedAt\") VALUES (%s, %s, %s, %s)",
+                        (str(uuid.uuid4()), course_name, False, datetime.datetime.now())
                     )
                 print(f"Added Course: {course_name}")
 
