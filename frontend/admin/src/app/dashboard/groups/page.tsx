@@ -862,7 +862,7 @@ export default function GroupsPage() {
 
                                             <div className="space-y-2">
                                                 {filteredCourses.map(c => {
-                                                    const modeLabel = c.mode === "Both" ? "Online" : c.mode;
+                                                    const modeLabel = c.mode === "Both" ? "Canlı + Video" : c.mode === "Online" ? "Sadece Canlı" : "Sadece Video (Offline)";
                                                     return (
                                                     <div key={c.courseId} className="flex items-center gap-3 p-3 rounded-xl bg-[#E2E8F0]/15 hover:bg-[#E2E8F0]/30 transition-colors group">
                                                         <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
@@ -1227,6 +1227,7 @@ export default function GroupsPage() {
                                     className="w-full px-4 py-3 bg-[#E2E8F0]/20 border border-[#E2E8F0]/60 rounded-xl text-sm font-medium text-[#0A1931] focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                                 >
                                     <option value="Both">İkisi Birden (Canlı Ders + Video Kayıt)</option>
+                                    <option value="Online">Sadece Canlı Ders (Online)</option>
                                     <option value="Offline">Sadece Kayıtlar (Offline Video)</option>
                                 </select>
                             </div>
